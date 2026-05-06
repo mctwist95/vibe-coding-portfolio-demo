@@ -1,61 +1,59 @@
-const menuBtn = document.getElementById("menuBtn");
-const navMenu = document.getElementById("navMenu");
-const dots = Array.from(document.querySelectorAll(".dot"));
-const heroImage = document.getElementById("heroImage");
-const showcaseImage = document.getElementById("showcaseImage");
-const slideCounter = document.getElementById("slideCounter");
+const API_KEY = "415b4849f4d1d3db22b7275eaa581f10";
+const API_URL = `https://api.themoviedb.org/3/movie/now_playing?api_key=${API_KEY}&language=ko-KR&page=1`;
+const IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500";
 
-const slides = [
-  {
-    hero: "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=700&q=80",
-    showcase:
-      "https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=800&q=80"
-  },
-  {
-    hero: "https://images.unsplash.com/photo-1542206395-9feb3edaa68d?auto=format&fit=crop&w=700&q=80",
-    showcase:
-      "https://images.unsplash.com/photo-1487017159836-4e23ece2e4cf?auto=format&fit=crop&w=800&q=80"
-  },
-  {
-    hero: "https://images.unsplash.com/photo-1542038784456-1ea8e935640e?auto=format&fit=crop&w=700&q=80",
-    showcase:
-      "https://images.unsplash.com/photo-1529336953121-a0ce8d73cd49?auto=format&fit=crop&w=800&q=80"
+const movieGrid = document.getElementById("movie-grid");
+const statusEl = document.getElementById("status");
+
+function createMovieCard(movie) {
+  const card = document.createElement("article");
+  card.className = "movie-card";
+
+  const poster = document.createElement("img");
+  poster.className = "poster";
+  poster.src = movie.poster_path
+    ? `${IMAGE_BASE_URL}${movie.poster_path}`
+    : "https://via.placeholder.com/500x750?text=No+Image";
+  poster.alt = `${movie.title} 포스터`;
+  poster.loading = "lazy";
+
+  const title = document.createElement("h2");
+  title.className = "movie-title";
+  title.textContent = movie.title;
+
+  card.append(poster, title);
+  return card;
+}
+
+async function loadNowPlayingMovies() {
+  try {
+    const response = await fetch(API_URL);
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+    const movies = data.results ?? [];
+
+    movieGrid.innerHTML = "";
+
+    if (movies.length === 0) {
+      statusEl.textContent = "현재 표시할 영화가 없습니다.";
+      return;
+    }
+
+    const fragment = document.createDocumentFragment();
+    movies.forEach((movie) => {
+      fragment.appendChild(createMovieCard(movie));
+    });
+
+    movieGrid.appendChild(fragment);
+    statusEl.textContent = `${movies.length}개의 현재 상영작`;
+  } catch (error) {
+    console.error(error);
+    statusEl.textContent = "영화 데이터를 불러오지 못했습니다. API Key를 확인해주세요.";
   }
-];
-
-let activeIndex = 0;
-let autoTimer = null;
-
-function setSlide(index) {
-  activeIndex = index;
-  heroImage.src = slides[index].hero;
-  showcaseImage.src = slides[index].showcase;
-  slideCounter.textContent = `${index + 1} / ${slides.length}`;
-  dots.forEach((dot, idx) => {
-    dot.classList.toggle("active", idx === index);
-  });
 }
 
-function nextSlide() {
-  const nextIndex = (activeIndex + 1) % slides.length;
-  setSlide(nextIndex);
-}
-
-function restartAutoSlide() {
-  if (autoTimer) clearInterval(autoTimer);
-  autoTimer = setInterval(nextSlide, 4500);
-}
-
-menuBtn?.addEventListener("click", () => {
-  navMenu?.classList.toggle("open");
-});
-
-dots.forEach((dot, idx) => {
-  dot.addEventListener("click", () => {
-    setSlide(idx);
-    restartAutoSlide();
-  });
-});
-
-setSlide(0);
-restartAutoSlide();
+loadNowPlayingMovies();
